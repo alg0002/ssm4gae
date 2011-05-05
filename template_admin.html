@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Admin page - Simple Site Manager For Google App Engine</title>
+<style type="text/css">
+body {
+  font-family: Tahoma, sans-selif;
+  margin: 0;
+}
+h1 {
+  font-size: 150%;
+}
+h2 {
+  font-size: 120%;
+  border-left:8px solid #3399FF;
+  border-bottom:1px solid #3399FF;
+  margin:0.25em 0em;
+  padding:0em 1em;
+}
+div#container {
+  background-color: #FFFFFF;
+}
+div#header {
+  width: 100%;
+}
+.gradient1 {
+  background-color: #99CCFF;
+  background: -ms-linear-gradient(#99CCFF, white); /* IE10 */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#99ccff',endColorstr='#ffffff'); /* IE6 IE7 */
+  -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr='#99ccff',endColorstr='#ffffff')"; /* IE8+ */
+  background: -moz-linear-gradient(#99CCFF, white); /* FF 3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #99CCFF), color-stop(100%, #ffffff)); /* Safari 4+, Chrome 2+ */
+  background: -webkit-linear-gradient(#99CCFF, white); /* Safari 5.1+, Chrome 10+ */
+  background: -o-linear-gradient(#99CCFF, white); /* Opera 11.10 */
+  background: linear-gradient(#99CCFF, white); /* the standard */
+}
+.gradient2 {
+  background-color: #99CCFF;
+  background: -ms-linear-gradient(#ffffff, #99ccff); /* IE10 */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff',endColorstr='#99ccff'); /* IE6 IE7 */
+  -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff',endColorstr='#99ccff')"; /* IE8+ */
+  background: -moz-linear-gradient(#ffffff, #99ccff); /* FF 3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #ffffff), color-stop(100%, #99ccff)); /* Safari 4+, Chrome 2+ */
+  background: -webkit-linear-gradient(#ffffff, #99ccff); /* Safari 5.1+, Chrome 10+ */
+  background: -o-linear-gradient(#ffffff, #99ccff); /* Opera 11.10 */
+  background: linear-gradient(#ffffff, #99ccff); /* the standard */
+}
+div#main {
+  width: 80%;
+  float: right;
+  margin: 4px;
+  padding: 10px;
+  border-left: #99CCFF 2px solid;
+  display: block;
+}
+div#menu {
+  width: 15%;
+  float: left;
+  display: block;
+}
+div#footer {
+  width: 100%;
+  clear: both;
+  background-color: #99CCFF;
+  text-align: right;
+}
+div#title {
+  padding: 10px;
+}
+div#about {
+  font-size: 75%;
+  padding:4px 16px;
+  line-height: 2em;
+}
+div#contentslist {
+  display:block;
+}
+div#addtext {
+  display:block;
+}
+div#addfile {
+  display:block;
+}
+p.active {
+  margin: 4px;
+  padding: 2px 8px;
+  background-color: #CCE0FF;
+  border: 1px solid #99A8B0;
+}
+p.inactive {
+  margin: 4px;
+  padding: 2px 8px;
+  border: 0px solid #99A8B0;
+}
+table.list {
+  border: 1px solid #99A8B0;
+}
+td.listcell {
+  border-top: 1px solid #99A8B0;
+}
+th {
+  background-color: #CCE0FF;
+  padding: 4px;
+}
+td {
+  padding: 4px 12px;
+}
+</style>
+<script language="javascript" type="text/javascript"><!--
+function inputcheck(form) {
+  path=form.path.value;
+  if(path.charAt(0)!='/'){
+    path='/'+path;
+  }
+  if(path.substring(1,4)=='_ah/' || path=='/form' || path=='{{ LIST_PATH }}' || path=='{{ EDIT_PATH }}' || path=='{{ UPLOAD_PATH }}'){
+    alert('Invalid path.');
+    return false;
+  }
+  if(form.content){
+    if(form.content.value==''){
+      alert('Empty content.');
+      return false;
+    }
+  }
+  if(form.file){
+    if(form.file.value==''){
+      alert('File is not selected.');
+      return false;
+    }
+  }
+}
+// -->
+</script>
+</head>
+<body>
+<div id="container">
+<div id="header" class="gradient1">
+<div id="title">
+<h1>Simple Site Manager For Google App Engine</h1>
+<p>Admin page</p>
+</div>
+</div>
+<div id="main">
+{% ifequal CURRENT_PATH LIST_PATH %}
+<div id="contentslist">
+<h2>List of contents</h2>
+<table class="list" cellspacing="0">
+<tr><th>name</th><th>path</th><th>type</th><th>public</th><th>edit</th><th>delete</th></tr>
+{% if contents %}
+{% for c in contents %}
+<tr><td class="listcell">{{ c.name }}</td><td class="listcell"><a href="{{ c.path }}" target="_blank">{{ c.path }}</a></td><td class="listcell">{{ c.entitytype }}</td><td class="listcell">{{ c.public }}</td><td class="listcell">
+<a href="{% ifequal c.entitytype 'file' %}{{ UPLOAD_PATH }}?{% else %}{{ EDIT_PATH }}?mode=modify&{% endifequal %}target={{ c.path }}">
+edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{ c.path }}" onclick="return confirm('Are you sure you want to delete [{{ c.name }}] ?');">delete</a></td></tr>
+{% endfor %}
+{% else %}
+<tr><td colspan="4">&lt;no data&gt;</td></tr>
+{% endif %}
+</table><br><br>
+</div>
+{% endifequal %}
+{% ifequal CURRENT_PATH EDIT_PATH %}
+<div id="addtext">
+<h2>Edit content</h2>
+<form action="{{ EDIT_PATH }}" method="post" name="editcontent">
+<input type="hidden" name="datatype" value="text">
+<table>
+<tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name }}"{% endif %}></td></tr>
+<tr><td>path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
+<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
+<tr><td>encoding:</td><td><select name="encoding"><option{% ifequal modify.encoding 'UTF-8' %} selected{% endifequal %}>UTF-8</option><option{% ifequal modify.encoding 'Shift_JIS' %} selected{% endifequal %}>Shift_JIS</option><option{% ifequal modify.encoding 'EUC-JP' %} selected{% endifequal %}>EUC-JP</option><option{% ifequal modify.encoding 'ISO-2022-JP' %} selected{% endifequal %}>ISO-2022-JP</option></select></td></tr>
+<tr><td>content:</td><td><textarea name="content" rows="15" cols="60">{% if modify %}{{ modify.textcontent|escape }}{% endif %}</textarea></td></tr>
+<tr><td colspan="2"><input type="submit" value="{% if modify %}modify{% else %}add{% endif %}" onclick="return inputcheck(document.editcontent);"></td></tr>
+</table>
+</form><br><br>
+</div>
+{% endifequal %}
+{% ifequal CURRENT_PATH UPLOAD_PATH %}
+<div id="addfile">
+<h2>Upload file</h2>
+<form action="{{ uploadurl }}" method="post" enctype="multipart/form-data" name="uploadfile">
+<input type="hidden" name="datatype" value="file">
+<table>
+<tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name }}"{% endif %}></td></tr>
+<tr><td>path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
+<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
+<tr><td>file:</td><td><input type="file" name="file"></td></tr>
+<tr><td colspan="2"><input type="submit" value="upload" onclick="return inputcheck(document.uploadfile);"></td></tr>
+</table>
+</form><br><br>
+</div>
+{% endifequal %}
+</div>
+<div id="menu">
+<p id="menucontentslist"{% ifequal CURRENT_PATH LIST_PATH %} class="active">List of contents{% else %} class="inactive"><a href="{{ LIST_PATH }}">List of contents</a>{% endifequal %}</p>
+<p id="menueditcontent"{% ifequal CURRENT_PATH EDIT_PATH %} class="active">Edit content{% else %} class="inactive"><a href="{{ EDIT_PATH }}">Edit content</a>{% endifequal %}</p>
+<p id="menuuploadfile"{% ifequal CURRENT_PATH UPLOAD_PATH %}  class="active">Upload file{% else %} class="inactive"><a href="{{ UPLOAD_PATH }}">Upload file</a>{% endifequal %}</p>
+</div>
+<div id="footer" class="gradient2">
+<div id="about">Powered by <a href="http://code.google.com/appengine/">Google App Engine</a></div>
+</div>
+</div>
+</body>
+</html>
