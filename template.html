@@ -3,11 +3,12 @@
 <title>{{ name }}</title>
 </head>
 <body>
+<div>{{ description }}</div>
 <div>
-{{ content }}
+{{ text }}
 </div>
 <div style="font-size:0.75em; text-align:right;">
-<p>TEMPLATE!</p>
+<p>{{ lastupdate|date:"Y/m/d H:i" }}</p>
 </div>
 </body>
 </html>

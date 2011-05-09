@@ -70,7 +70,6 @@ div#title {
 div#about {
   font-size: 75%;
   padding:4px 16px;
-  line-height: 2em;
 }
 div#contentslist {
   display:block;
@@ -112,7 +111,7 @@ function inputcheck(form) {
   if(path.charAt(0)!='/'){
     path='/'+path;
   }
-  if(path.substring(1,4)=='_ah/' || path=='/form' || path=='{{ LIST_PATH }}' || path=='{{ EDIT_PATH }}' || path=='{{ UPLOAD_PATH }}'){
+  if(path.substring(0,5)=='/_ah/' || path=='/form' || path=='{{ LIST_PATH }}' || path=='{{ EDIT_PATH }}' || path=='{{ UPLOAD_PATH }}'){
     alert('Invalid path.');
     return false;
   }
@@ -123,7 +122,7 @@ function inputcheck(form) {
     }
   }
   if(form.file){
-    if(form.file.value==''){
+    if(! form.oldpath && form.file.value==''){
       alert('File is not selected.');
       return false;
     }
@@ -165,10 +164,12 @@ edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{
 <input type="hidden" name="datatype" value="text">
 <table>
 <tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name }}"{% endif %}></td></tr>
-<tr><td>path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
+{% if modify %}<tr><td>old path:</td><td><input type="text" name="oldpath" value="{{ modify.path }}" readonly></td></tr>{% endif %}
+<tr><td>{% if modify %}new {% endif %}path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
 <tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
 <tr><td>encoding:</td><td><select name="encoding"><option{% ifequal modify.encoding 'UTF-8' %} selected{% endifequal %}>UTF-8</option><option{% ifequal modify.encoding 'Shift_JIS' %} selected{% endifequal %}>Shift_JIS</option><option{% ifequal modify.encoding 'EUC-JP' %} selected{% endifequal %}>EUC-JP</option><option{% ifequal modify.encoding 'ISO-2022-JP' %} selected{% endifequal %}>ISO-2022-JP</option></select></td></tr>
 <tr><td>content:</td><td><textarea name="content" rows="15" cols="60">{% if modify %}{{ modify.textcontent|escape }}{% endif %}</textarea></td></tr>
+<tr><td>description:</td><td><input type="text" name="description"{% if modify %} value="{{ modify.description }}"{% endif %}></td></tr>
 <tr><td colspan="2"><input type="submit" value="{% if modify %}modify{% else %}add{% endif %}" onclick="return inputcheck(document.editcontent);"></td></tr>
 </table>
 </form><br><br>
@@ -177,13 +178,15 @@ edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{
 {% ifequal CURRENT_PATH UPLOAD_PATH %}
 <div id="addfile">
 <h2>Upload file</h2>
-<form action="{{ uploadurl }}" method="post" enctype="multipart/form-data" name="uploadfile">
+<form action="{{ UPLOAD_PATH }}" method="post" enctype="multipart/form-data" name="uploadfile">
 <input type="hidden" name="datatype" value="file">
 <table>
 <tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name }}"{% endif %}></td></tr>
-<tr><td>path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
+{% if modify %}<tr><td>old path:</td><td><input type="text" name="oldpath" value="{{ modify.path }}" readonly></td></tr>{% endif %}
+<tr><td>{% if modify %}new {% endif %}path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path }}"{% endif %}></td></tr>
 <tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
 <tr><td>file:</td><td><input type="file" name="file"></td></tr>
+<tr><td>description:</td><td><input type="text" name="description"{% if modify %} value="{{ modify.description }}"{% endif %}></td></tr>
 <tr><td colspan="2"><input type="submit" value="upload" onclick="return inputcheck(document.uploadfile);"></td></tr>
 </table>
 </form><br><br>
@@ -196,7 +199,7 @@ edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{
 <p id="menuuploadfile"{% ifequal CURRENT_PATH UPLOAD_PATH %}  class="active">Upload file{% else %} class="inactive"><a href="{{ UPLOAD_PATH }}">Upload file</a>{% endifequal %}</p>
 </div>
 <div id="footer" class="gradient2">
-<div id="about">Powered by <a href="http://code.google.com/appengine/">Google App Engine</a></div>
+<div id="about">&nbsp;<br><a href="http://code.google.com/appengine/"><img src="http://code.google.com/appengine/images/appengine-silver-120x30.gif" alt="Powered by Google App Engine" border="0"></a></div>
 </div>
 </div>
 </body>
