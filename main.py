@@ -25,10 +25,11 @@ use_library('django','0.96')
 from google.appengine.ext import blobstore,db,webapp
 from google.appengine.ext.webapp import blobstore_handlers,template,util
 
-# ó\ñÒçœÇ›ÉpÉX
-LIST_PATH  ='/admin_listcontent'
-EDIT_PATH  ='/admin_editcontent'
-UPLOAD_PATH='/admin_uploadfile'
+# ‰∫àÁ¥ÑÊ∏à„Åø„Éë„Çπ
+LIST_PATH   ='/admin_listcontent'
+EDIT_PATH   ='/admin_editcontent'
+UPLOAD_PATH ='/admin_uploadfile'
+SETTING_PATH='/admin_setting'
 
 class Content(db.Model):
     # key_name = 'e'+path
@@ -36,12 +37,12 @@ class Content(db.Model):
     path=db.StringProperty(required=True)
     public=db.BooleanProperty(required=True)
     entitytype=db.StringProperty(required=True, choices=set(["text","file","alias"]), indexed=False)
-    contenttype=db.StringProperty(indexed=False)    # textÇÕÇΩÇ‘ÇÒïKê{
-    templatefile=db.StringProperty(indexed=False)   # contenttype='text/html'ÇÃèÍçáÇÃÇ›égópÇ∑ÇÈÇ±Ç∆ÇëzíË
-    encoding=db.StringProperty(indexed=False)    # textÇ≈éwíËÇ≈Ç´ÇÈÅiéwíËÇµÇ»Ç≠ÇƒÇ‡Ç¢Ç¢ÇØÇ«Åj
-    textcontent=db.TextProperty()    # textÇ≈égóp/éwíËÇ≥ÇÍÇΩÉGÉìÉRÅ[ÉhÇ…ïœä∑ÇµÇΩÇ§Ç¶Ç≈éQè∆
+    contenttype=db.StringProperty(indexed=False)    # text„ÅØ„Åü„Å∂„ÇìÂøÖÈ†à
+    templatefile=db.StringProperty(indexed=False)   # contenttype='text/html'„ÅÆÂ†¥Âêà„ÅÆ„Åø‰ΩøÁî®„Åô„Çã„Åì„Å®„ÇíÊÉ≥ÂÆö
+    encoding=db.StringProperty(indexed=False)    # text„ÅßÊåáÂÆö„Åß„Åç„ÇãÔºàÊåáÂÆö„Åó„Å™„Åè„Å¶„ÇÇ„ÅÑ„ÅÑ„Åë„Å©Ôºâ
+    textcontent=db.TextProperty()    # text„Åß‰ΩøÁî®/ÊåáÂÆö„Åï„Çå„Åü„Ç®„É≥„Ç≥„Éº„Éâ„Å´Â§âÊèõ„Åó„Åü„ÅÜ„Åà„ÅßÂèÇÁÖß
     blobcontent=db.BlobProperty()
-    aliastarget=db.SelfReferenceProperty()    # aliasÇ≈égóp
+    aliastarget=db.SelfReferenceProperty()    # alias„Åß‰ΩøÁî®
     description=db.TextProperty()
     lastupdate=db.DateTimeProperty()
 
@@ -50,7 +51,7 @@ class Setting(db.Model):
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
-        c=Content.get_by_key_name('e'+self.request.path)
+        c=get_content(self.request.path)
         if c and (c.public or users.is_current_user_admin()):
             if c.entitytype=='text':
                 if c.contenttype:
@@ -84,7 +85,7 @@ class ListHandler(webapp.RequestHandler):
                 path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
                 q=Content.all()
                 q.order('__key__')
-                self.response.out.write(template.render(path, {'contents':q.fetch(1000,0),'CURRENT_PATH':LIST_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH}))
+                self.response.out.write(template.render(path, {'contents':q.fetch(1000,0),'CURRENT_PATH':LIST_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH}))
                 return
         self.redirect(users.create_login_url(self.request.uri))
 
@@ -94,63 +95,67 @@ class EditHandler(webapp.RequestHandler):
             if users.is_current_user_admin():
                 if self.request.arguments():
                     if self.request.get(u'mode')=='delete':
-                        c=Content.get_by_key_name('e'+self.request.get(u'target'))
+                        c=get_content(self.request.get(u'target'))
                         if c:
                             c.delete()
                         self.redirect(LIST_PATH)
                         return
                     elif self.request.get(u'mode')=='modify':
-                        c=Content.get_by_key_name('e'+self.request.get(u'target'))
+                        c=get_content(self.request.get(u'target'))
                         if c:
                             if c.entitytype=='file':
                                 self.redirect(UPLOAD_PATH+'?target='+self.request.get('target'))
                                 return
                         path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
-                        self.response.out.write(template.render(path, {'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'modify':c}))
+                        self.response.out.write(template.render(path, {'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH,'modify':c}))
                         return
                 path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
                 q=Content.all()
                 q.order('__key__')
-                self.response.out.write(template.render(path, {'contents':q.fetch(1000,0),'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH}))
+                self.response.out.write(template.render(path, {'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH}))
                 return
         self.redirect(users.create_login_url(self.request.uri))
     def post(self):
-        dtype=self.request.get('datatype')
-        if dtype=='text':
-            oldpath=self.request.get('oldpath')
-            if oldpath:
-                oldpath=convpath(oldpath)
-                oc=Content.get_by_key_name('e'+oldpath)
-                if oc:
-                    oc.delete()
-            p=self.request.get('path')
-            p=convpath(p)
-            if p is None:
+        if users.get_current_user():
+            if users.is_current_user_admin():
+                dtype=self.request.get('datatype')
+                if dtype=='text':
+                    oldpath=self.request.get('oldpath')
+                    if oldpath:
+                        oldpath=convpath(oldpath)
+                        oc=get_content(oldpath)
+                        if oc:
+                            oc.delete()
+                    p=self.request.get('path')
+                    p=convpath(p)
+                    if p is None:
+                        self.redirect(LIST_PATH)
+                        return
+                    c=get_content(p)
+                    if c:
+                        c.delete()
+                    c=Content(key_name='e'+p,
+                              path=p,
+                              public=(self.request.get('public') == 'on'),
+                              entitytype='text')
+                    c.name=self.request.get('name')
+                    c.encoding=self.request.get('encoding')
+                    c.textcontent=self.request.get('content')
+                    mtype,stype=mimetypes.guess_type(c.path)
+                    if mtype:
+                        c.contenttype=str(mtype)
+                    else:
+                        c.contenttype='text/html'
+                    if c.contenttype=='text/html':
+                        c.templatefile='template.html'
+                    else:
+                        c.templatefile=None
+                    c.description=self.request.get('description')
+                    c.lastupdate=datetime.datetime.now()
+                    c.put()
                 self.redirect(LIST_PATH)
                 return
-            c=Content.get_by_key_name('e'+p)
-            if c:
-                c.delete()
-            c=Content(key_name='e'+p,
-                      path=p,
-                      public=(self.request.get('public') == 'on'),
-                      entitytype='text')
-            c.name=self.request.get('name')
-            c.encoding=self.request.get('encoding')
-            c.textcontent=self.request.get('content')
-            mtype,stype=mimetypes.guess_type(c.path)
-            if mtype:
-                c.contenttype=str(mtype)
-            else:
-                c.contenttype='text/html'
-            if c.contenttype=='text/html':
-                c.templatefile='template.html'
-            else:
-                c.templatefile=None
-            c.description=self.request.get('description')
-            c.lastupdate=datetime.datetime.now()
-            c.put()
-        self.redirect(LIST_PATH)
+        self.redirect(users.create_login_url(self.request.uri))
 
 class UploadHandler(webapp.RequestHandler):
     def get(self):
@@ -158,10 +163,10 @@ class UploadHandler(webapp.RequestHandler):
             if users.is_current_user_admin():
                 path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
                 if self.request.get('target'):
-                    c=Content.get_by_key_name('e'+self.request.get('target'))
+                    c=get_content(self.request.get('target'))
                 else:
                     c=None
-                self.response.out.write(template.render(path, {'CURRENT_PATH':UPLOAD_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'modify':c}))
+                self.response.out.write(template.render(path, {'CURRENT_PATH':UPLOAD_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH,'modify':c}))
                 return
         self.redirect(users.create_login_url(self.request.uri))
     def post(self):
@@ -178,12 +183,12 @@ class UploadHandler(webapp.RequestHandler):
                     oldpath=self.request.get('oldpath')
                     if oldpath:
                         oldpath=convpath(oldpath)
-                        oc=Content.get_by_key_name('e'+oldpath)
+                        oc=get_content(oldpath)
                         if oc:
                             if oc.blobcontent and not ffile:
                                 ffile=oc.blobcontent
                             oc.delete()
-                    c=Content.get_by_key_name('e'+fpath)
+                    c=get_content(fpath)
                     if c:
                         c.delete()
                     c=Content(key_name='e'+fpath,
@@ -204,10 +209,29 @@ class UploadHandler(webapp.RequestHandler):
                 return
         self.redirect(users.create_login_url(self.request.uri))
 
+class SettingHandler(webapp.RequestHandler):
+    def get(self):
+        if users.get_current_user():
+            if users.is_current_user_admin():
+                s=get_setting()
+                path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
+                self.response.out.write(template.render(path, {'CURRENT_PATH':SETTING_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH,'setting':s}))
+                return
+        self.redirect(users.create_login_url(self.request.uri))
+    def post(self):
+        if users.get_current_user():
+            if users.is_current_user_admin():
+                s=get_setting()
+                s.utcoffset=int(self.request.get('utcoffset'))
+                path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
+                self.response.out.write(template.render(path, {'CURRENT_PATH':SETTING_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'SETTING_PATH':SETTING_PATH,'setting':s}))
+                return
+        self.redirect(users.create_login_url(self.request.uri))
+
 def convpath(path):
     if not path or path[0]!='/':
         path='/'+path
-    if path[0:5]=='/_ah/' or path=='/form' or path==LIST_PATH or path==EDIT_PATH or path==UPLOAD_PATH:
+    if path[0:5]=='/_ah/' or path=='/form' or path==LIST_PATH or path==EDIT_PATH or path==UPLOAD_PATH or path==SETTING_PATH:
         return None
     return path
 
@@ -221,10 +245,28 @@ def get_setting():
         memcache.set(key='default_setting',value=s,time=3600)
     return s
 
+def get_content(path):
+    import logging
+    path=convpath(path)
+    c=Content.get_by_key_name('e'+path)
+    if c:
+        return c
+    else:
+        if path[len(path)-1]=='/':
+            c=Content.get_by_key_name('e'+path+'index.html')
+            if c:
+                return c
+        if path[len(path)-11:]=='/index.html':
+            logging.info(path[0:len(path)-10])
+            c=Content.get_by_key_name('e'+path[0:len(path)-10])
+            if c:
+                return c
+
 def main():
     application=webapp.WSGIApplication([(LIST_PATH, ListHandler),
                                         (EDIT_PATH, EditHandler),
                                         (UPLOAD_PATH, UploadHandler),
+                                        (SETTING_PATH, SettingHandler),
                                         ('/.*', MainHandler)],
                                        debug=True)
     util.run_wsgi_app(application)
