@@ -91,6 +91,14 @@ p.inactive {
   padding: 2px 8px;
   border: 0px solid #99A8B0;
 }
+span {
+  margin: 2px;
+  padding: 2px;
+  border: 1px solid #99A8B0;
+}
+span.current {
+  background-color: #CCE0FF;
+}
 table.list {
   border: 1px solid #99A8B0;
 }
@@ -155,14 +163,22 @@ function inputcheck(form) {
 <tr><th>name</th><th>path</th><th>type</th><th>public</th><th>edit</th><th>delete</th></tr>
 {% if contents %}
 {% for c in contents %}
-<tr><td class="listcell">{{ c.name }}</td><td class="listcell"><a href="{{ c.path }}" target="_blank">{{ c.path }}</a></td><td class="listcell">{{ c.entitytype }}</td><td class="listcell">{{ c.public }}</td><td class="listcell">
-<a href="{% ifequal c.entitytype 'file' %}{{ UPLOAD_PATH }}?{% else %}{% ifequal c.entitytype 'alias' %}{{ ALIAS_PATH }}?{% else %}{{ EDIT_PATH }}?mode=modify&{% endifequal %}{% endifequal %}target={{ c.path }}">
-edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{ c.path }}" onclick="return confirm('Are you sure you want to delete [{{ c.name }}] ?');">delete</a></td></tr>
+<tr>
+  <td class="listcell">{{ c.name }}</td>
+  <td class="listcell"><a href="{{ c.path }}" target="_blank">{{ c.path }}</a></td>
+  <td class="listcell">{{ c.entitytype }}</td>
+  <td class="listcell">{{ c.public }}</td>
+  <td class="listcell"><a href="{% ifequal c.entitytype 'file' %}{{ UPLOAD_PATH }}?{% else %}{% ifequal c.entitytype 'alias' %}{{ ALIAS_PATH }}?{% else %}{{ EDIT_PATH }}?mode=modify&{% endifequal %}{% endifequal %}target={{ c.path }}">edit</a></td>
+  <td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{ c.path }}" onclick="return confirm('Are you sure you want to delete [{{ c.name }}] ?');">delete</a></td>
+</tr>
 {% endfor %}
 {% else %}
 <tr><td colspan="4">&lt;no data&gt;</td></tr>
 {% endif %}
 </table><br><br>
+{% for p in allpages %}
+<span{% ifequal p currentpage %} class="current">{{ p }}{% else %}><a href="{{ LIST_PATH }}?page={{ p }}">{{ p }}</a>{% endifequal %}</span>
+{% endfor %}
 </div>
 {% endifequal %}
 {% ifequal CURRENT_PATH EDIT_PATH %}
@@ -231,9 +247,9 @@ edit</a></td><td class="listcell"><a href="{{ EDIT_PATH }}?mode=delete&target={{
 </div>
 <div id="menu">
 <p id="menucontentslist"{% ifequal CURRENT_PATH LIST_PATH %} class="active">List of contents{% else %} class="inactive"><a href="{{ LIST_PATH }}">List of contents</a>{% endifequal %}</p>
-<p id="menueditcontent"{% ifequal CURRENT_PATH EDIT_PATH %} class="active">Edit content{% else %} class="inactive"><a href="{{ EDIT_PATH }}">Edit content</a>{% endifequal %}</p>
-<p id="menueditalias"{% ifequal CURRENT_PATH ALIAS_PATH %}  class="active">Edit alias{% else %} class="inactive"><a href="{{ ALIAS_PATH }}">Edit alias</a>{% endifequal %}</p>
-<p id="menuuploadfile"{% ifequal CURRENT_PATH UPLOAD_PATH %}  class="active">Upload file{% else %} class="inactive"><a href="{{ UPLOAD_PATH }}">Upload file</a>{% endifequal %}</p>
+<p id="menueditcontent"{% ifequal CURRENT_PATH EDIT_PATH %} class="active">{% if modify %}<a href="{{ EDIT_PATH }}">Edit content</a>{% else %}Edit content{% endif %}{% else %} class="inactive"><a href="{{ EDIT_PATH }}">Edit content</a>{% endifequal %}</p>
+<p id="menueditalias"{% ifequal CURRENT_PATH ALIAS_PATH %}  class="active">{% if modify %}<a href="{{ ALIAS_PATH }}">Edit alias</a>{% else %}Edit alias{% endif %}{% else %} class="inactive"><a href="{{ ALIAS_PATH }}">Edit alias</a>{% endifequal %}</p>
+<p id="menuuploadfile"{% ifequal CURRENT_PATH UPLOAD_PATH %}  class="active">{% if modify %}<a href="{{ UPLOAD_PATH }}">Upload file</a>{% else %}Upload file{% endif %}{% else %} class="inactive"><a href="{{ UPLOAD_PATH }}">Upload file</a>{% endifequal %}</p>
 <br>
 <p id="menusetting"{% ifequal CURRENT_PATH SETTING_PATH %} class="active">Setting{% else %} class="inactive"><a href="{{ SETTING_PATH }}">Setting</a>{% endifequal %}</p>
 </div>

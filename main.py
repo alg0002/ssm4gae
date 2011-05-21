@@ -18,7 +18,7 @@
 # ----------------------------------
 # Simple Site Manager For Google App Engine (ssm4gae)
 
-import datetime,mimetypes,os,urllib
+import datetime,os,urllib
 from google.appengine.api import users,memcache
 from google.appengine.dist import use_library
 use_library('django','0.96')
@@ -31,11 +31,14 @@ EDIT_PATH   ='/admin_editcontent'
 ALIAS_PATH  ='/admin_editalias'
 UPLOAD_PATH ='/admin_uploadfile'
 SETTING_PATH='/admin_setting'
+# Directory Index
+DIRECTORY_INDEX='index.html'
+# Display count per page
+COUNT_PER_PAGE=20
 
 class Content(db.Model):
     # key_name = 'e'+path
     name=db.StringProperty()
-    path=db.StringProperty(required=True)
     public=db.BooleanProperty(required=True)
     entitytype=db.StringProperty(required=True, choices=set(["text","file","alias"]), indexed=False)
     contenttype=db.StringProperty(indexed=False)
@@ -46,9 +49,18 @@ class Content(db.Model):
     aliastarget=db.StringProperty()
     description=db.TextProperty()
     lastupdate=db.DateTimeProperty(auto_now=True)
+    path=db.StringProperty(required=True)
+    parentpath=db.StringProperty()
+    def setparentinfo(self):
+        p=self.path
+        if p.rfind('/')==-1:
+            self.parentpath=''
+        else:
+            self.parentpath=p[0:p.rfind('/')]
 
 class Setting(db.Model):
-  utcoffset=db.IntegerProperty(default=9)
+    # key_name = 'default'
+    utcoffset=db.IntegerProperty(default=9)
 
 class MainHandler(webapp.RequestHandler):
     def get(self):
@@ -101,7 +113,32 @@ class ListHandler(webapp.RequestHandler):
                 path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
                 q=Content.all()
                 q.order('__key__')
-                self.response.out.write(template.render(path, {'contents':q.fetch(1000,0),'CURRENT_PATH':LIST_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'ALIAS_PATH':ALIAS_PATH,'SETTING_PATH':SETTING_PATH}))
+                mp=int(float(q.count())/float(COUNT_PER_PAGE)+.99)
+                if mp<1:
+                    mp=1
+                p=self.request.get(u'page')
+                if not p or not p.isdigit():
+                    p=1
+                else:
+                    p=int(p)
+                    if p<1:
+                        p=1
+                    elif p>mp:
+                        p=mp
+                allpages=range(1,mp+1)
+                if len(allpages)==1:
+                    allpages=None
+                self.response.out.write(template.render(path, {
+                    'contents':q.fetch(COUNT_PER_PAGE,(p-1)*COUNT_PER_PAGE),
+                    'CURRENT_PATH':LIST_PATH,
+                    'LIST_PATH':LIST_PATH,
+                    'EDIT_PATH':EDIT_PATH,
+                    'UPLOAD_PATH':UPLOAD_PATH,
+                    'ALIAS_PATH':ALIAS_PATH,
+                    'SETTING_PATH':SETTING_PATH,
+                    'currentpage':p,
+                    'allpages':allpages
+                }))
                 return
         self.redirect(users.create_login_url(self.request.uri))
 
@@ -150,6 +187,8 @@ class EditHandler(webapp.RequestHandler):
                     if p is None:
                         self.redirect(LIST_PATH)
                         return
+                    elif p[len(p)-1]=='/':
+                        p=p+DIRECTORY_INDEX
                     c=get_content(p)
                     if c:
                         c.delete()
@@ -160,6 +199,7 @@ class EditHandler(webapp.RequestHandler):
                     c.name=self.request.get('name')
                     c.encoding=self.request.get('encoding')
                     c.textcontent=self.request.get('content')
+                    import mimetypes
                     mtype,stype=mimetypes.guess_type(c.path)
                     if mtype:
                         c.contenttype=str(mtype)
@@ -170,6 +210,7 @@ class EditHandler(webapp.RequestHandler):
                     else:
                         c.templatefile=None
                     c.description=self.request.get('description')
+                    c.setparentinfo()
                     c.put()
                 self.redirect(LIST_PATH)
                 return
@@ -198,6 +239,8 @@ class UploadHandler(webapp.RequestHandler):
                     if fpath is None:
                         self.redirect(LIST_PATH)
                         return
+                    elif fpath[len(fpath)-1]=='/':
+                        fpath=fpath+DIRECTORY_INDEX
                     oldpath=self.request.get('oldpath')
                     if oldpath:
                         oldpath=convpath(oldpath)
@@ -216,12 +259,14 @@ class UploadHandler(webapp.RequestHandler):
                               entitytype='file',
                               blobcontent=ffile,
                               lastupdate=datetime.datetime.now())
+                    import mimetypes
                     mtype,stype=mimetypes.guess_type(c.path)
                     if mtype:
                         c.contenttype=str(mtype)
                     else:
                         c.contenttype=None
                     c.description=self.request.get('description')
+                    c.setparentinfo()
                     c.put()
                 self.redirect(LIST_PATH)
                 return
@@ -255,6 +300,8 @@ class AliasHandler(webapp.RequestHandler):
                     if p is None:
                         self.redirect(ALIAS_PATH)
                         return
+                    elif p[len(p)-1]=='/':
+                        p=p+DIRECTORY_INDEX
                     c=get_content(p)
                     if c:
                         c.delete()
@@ -265,6 +312,7 @@ class AliasHandler(webapp.RequestHandler):
                     c.name=self.request.get('name')
                     c.aliastarget=self.request.get('aliastarget')
                     c.description=self.request.get('description')
+                    c.setparentinfo()
                     c.put()
                 self.redirect(LIST_PATH)
                 return
@@ -313,11 +361,11 @@ def get_content(path):
         return c
     else:
         if path[len(path)-1]=='/':
-            c=Content.get_by_key_name('e'+path+'index.html')
+            c=Content.get_by_key_name('e'+path+DIRECTORY_INDEX)
             if c:
                 return c
-        if path[len(path)-11:]=='/index.html':
-            c=Content.get_by_key_name('e'+path[0:len(path)-10])
+        if path[len(path)-1-len(DIRECTORY_INDEX):]=='/'+DIRECTORY_INDEX:
+            c=Content.get_by_key_name('e'+path[0:len(path)-len(DIRECTORY_INDEX)])
             if c:
                 return c
 
