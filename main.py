@@ -35,6 +35,8 @@ SETTING_PATH='/admin_setting'
 DIRECTORY_INDEX='index.html'
 # Display count per page
 COUNT_PER_PAGE=20
+# Others
+NO_NAME='(No name)'
 
 class Content(db.Model):
     # key_name = 'e'+path
@@ -73,14 +75,21 @@ class MainHandler(webapp.RequestHandler):
                 if self.returnfile(c):
                     return
             elif c.entitytype=='alias':
-                c=get_content(c.aliastarget)
-                if c and (c.public or users.is_current_user_admin()):
-                    if c.entitytype=='text':
-                        if self.returntext(c):
-                            return
-                    elif c.entitytype=='file':
-                        if self.returnfile(c):
-                            return
+                if c.aliastarget and c.aliastarget.startswith('http://'):
+                    from google.appengine.api import urlfetch
+                    result=urlfetch.fetch(url=c.aliastarget)
+                    self.response.headers["Content-Type"]=result.headers["Content-Type"]
+                    self.response.out.write(result.content)
+                    return
+                else:
+                    c=get_content(c.aliastarget)
+                    if c and (c.public or users.is_current_user_admin()):
+                        if c.entitytype=='text':
+                            if self.returntext(c):
+                                return
+                        elif c.entitytype=='file':
+                            if self.returnfile(c):
+                                return
         self.error(404)
     def returntext(self,c):
         if c.contenttype:
@@ -101,9 +110,38 @@ class MainHandler(webapp.RequestHandler):
             self.response.out.write(c.textcontent)
             return True
     def returnfile(self,c):
+        b=c.blobcontent
         if c.contenttype:
             self.response.headers["Content-Type"]=c.contenttype
-        self.response.out.write(c.blobcontent)
+            w=self.request.get(u'w')
+            h=self.request.get(u'h')
+            if w.isdigit():
+                w=int(w)
+            else:
+                w=0
+            if h.isdigit():
+                h=int(h)
+            else:
+                h=0
+            if w>0 or h>0:
+                from google.appengine.api import images
+                img=images.Image(b)
+                if w>0 and h>0:
+                    img.resize(width=w,height=h)
+                elif w>0:
+                    img.resize(width=w)
+                else:
+                    img.resize(height=h)
+                imgtypes={'image/jpeg':images.JPEG,
+                          'image/png' :images.PNG,
+#                          images.WEBP,
+                          'image/bmp' :images.BMP,
+                          'image/gif' :images.GIF,
+                          'image/x-icon':images.ICO,
+                          'image/tiff':images.TIFF,
+                }
+                b=img.execute_transforms(output_encoding=imgtypes[c.contenttype])
+        self.response.out.write(b)
         return True
 
 class ListHandler(webapp.RequestHandler):
@@ -162,8 +200,9 @@ class EditHandler(webapp.RequestHandler):
                             elif c.entitytype=='alias':
                                 self.redirect(ALIAS_PATH+'?target='+self.request.get('target'))
                                 return
+                        errormsg=self.request.get(u'errormsg')
                         path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
-                        self.response.out.write(template.render(path, {'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'ALIAS_PATH':ALIAS_PATH,'SETTING_PATH':SETTING_PATH,'modify':c}))
+                        self.response.out.write(template.render(path, {'CURRENT_PATH':EDIT_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'ALIAS_PATH':ALIAS_PATH,'SETTING_PATH':SETTING_PATH,'modify':c,'errormsg':errormsg}))
                         return
                 path=os.path.join(os.path.dirname(__file__), 'template_admin.html')
                 q=Content.all()
@@ -197,6 +236,8 @@ class EditHandler(webapp.RequestHandler):
                               public=(self.request.get('public') == 'on'),
                               entitytype='text')
                     c.name=self.request.get('name')
+                    if not c.name:
+                        c.name=NO_NAME
                     c.encoding=self.request.get('encoding')
                     c.textcontent=self.request.get('content')
                     import mimetypes
@@ -210,6 +251,8 @@ class EditHandler(webapp.RequestHandler):
                     else:
                         c.templatefile=None
                     c.description=self.request.get('description')
+                    if not c.description:
+                        c.description=''
                     c.setparentinfo()
                     c.put()
                 self.redirect(LIST_PATH)
@@ -225,7 +268,8 @@ class UploadHandler(webapp.RequestHandler):
                     c=get_content(self.request.get('target'))
                 else:
                     c=None
-                self.response.out.write(template.render(path, {'CURRENT_PATH':UPLOAD_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'ALIAS_PATH':ALIAS_PATH,'SETTING_PATH':SETTING_PATH,'modify':c}))
+                errormsg=self.request.get(u'errormsg')
+                self.response.out.write(template.render(path, {'CURRENT_PATH':UPLOAD_PATH,'LIST_PATH':LIST_PATH,'EDIT_PATH':EDIT_PATH,'UPLOAD_PATH':UPLOAD_PATH,'ALIAS_PATH':ALIAS_PATH,'SETTING_PATH':SETTING_PATH,'modify':c,'errormsg':errormsg}))
                 return
         self.redirect(users.create_login_url(self.request.uri))
     def post(self):
@@ -259,15 +303,29 @@ class UploadHandler(webapp.RequestHandler):
                               entitytype='file',
                               blobcontent=ffile,
                               lastupdate=datetime.datetime.now())
+                    if not c.name:
+                        c.name=NO_NAME
                     import mimetypes
                     mtype,stype=mimetypes.guess_type(c.path)
                     if mtype:
                         c.contenttype=str(mtype)
                     else:
-                        c.contenttype=None
+                        if c.path.endswith(".ico"):
+                            c.contenttype="image/x-icon"
+                        else:
+                            c.contenttype=None
                     c.description=self.request.get('description')
+                    if not c.description:
+                        c.description=''
                     c.setparentinfo()
-                    c.put()
+                    try:
+                        from google.appengine.runtime import apiproxy_errors
+                        c.put()
+                    except apiproxy_errors.RequestTooLargeError:
+                        c.blobcontent=None
+                        c.put()
+                        self.redirect(UPLOAD_PATH+'?target='+c.path+'&errormsg=Too%20large%20file')
+                        return
                 self.redirect(LIST_PATH)
                 return
         self.redirect(users.create_login_url(self.request.uri))
@@ -310,8 +368,12 @@ class AliasHandler(webapp.RequestHandler):
                               public=(self.request.get('public') == 'on'),
                               entitytype='alias')
                     c.name=self.request.get('name')
+                    if not c.name:
+                        c.name=NO_NAME
                     c.aliastarget=self.request.get('aliastarget')
                     c.description=self.request.get('description')
+                    if not c.description:
+                        c.description=''
                     c.setparentinfo()
                     c.put()
                 self.redirect(LIST_PATH)

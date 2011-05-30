@@ -96,6 +96,11 @@ span {
   padding: 2px;
   border: 1px solid #99A8B0;
 }
+span.errormsg {
+  border: 0px;
+  color: #FF0000;
+  font-weight: bold;
+}
 span.current {
   background-color: #CCE0FF;
 }
@@ -156,6 +161,7 @@ function inputcheck(form) {
 </div>
 </div>
 <div id="main">
+{% if errormsg %}<span class="errormsg">{{ errormsg }}</span>{% endif %}
 {% ifequal CURRENT_PATH LIST_PATH %}
 <div id="contentslist">
 <h2>List of contents</h2>
@@ -190,9 +196,9 @@ function inputcheck(form) {
 <tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name|escape }}"{% endif %}></td></tr>
 {% if modify %}<tr><td>old path:</td><td><input type="text" name="oldpath" value="{{ modify.path|escape }}" readonly></td></tr>{% endif %}
 <tr><td>{% if modify %}new {% endif %}path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path|escape }}"{% endif %}></td></tr>
-<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
+<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify %}{% if modify.public %} checked{% endif %}{% else %} checked{% endif %}></td></tr>
 <tr><td>encoding:</td><td><select name="encoding"><option{% ifequal modify.encoding 'UTF-8' %} selected{% endifequal %}>UTF-8</option><option{% ifequal modify.encoding 'Shift_JIS' %} selected{% endifequal %}>Shift_JIS</option><option{% ifequal modify.encoding 'EUC-JP' %} selected{% endifequal %}>EUC-JP</option><option{% ifequal modify.encoding 'ISO-2022-JP' %} selected{% endifequal %}>ISO-2022-JP</option></select></td></tr>
-<tr><td>content:</td><td><textarea name="content" rows="15" cols="60">{% if modify %}{{ modify.textcontent|escape }}{% endif %}</textarea></td></tr>
+<tr><td>text:</td><td><textarea name="content" rows="15" cols="60">{% if modify %}{{ modify.textcontent|escape }}{% endif %}</textarea></td></tr>
 <tr><td>description:</td><td><input type="text" name="description"{% if modify %} value="{{ modify.description|escape }}"{% endif %}></td></tr>
 <tr><td colspan="2"><input type="submit" value="{% if modify %}modify{% else %}add{% endif %}" onclick="return inputcheck(document.editcontent);"></td></tr>
 </table>
@@ -208,7 +214,7 @@ function inputcheck(form) {
 <tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name|escape }}"{% endif %}></td></tr>
 {% if modify %}<tr><td>old path:</td><td><input type="text" name="oldpath" value="{{ modify.path|escape }}" readonly></td></tr>{% endif %}
 <tr><td>{% if modify %}new {% endif %}path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path|escape }}"{% endif %}></td></tr>
-<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
+<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify %}{% if modify.public %} checked{% endif %}{% else %} checked{% endif %}></td></tr>
 <tr><td>file:</td><td><input type="file" name="file"></td></tr>
 <tr><td>description:</td><td><input type="text" name="description"{% if modify %} value="{{ modify.description|escape }}"{% endif %}></td></tr>
 <tr><td colspan="2"><input type="submit" value="upload" onclick="return inputcheck(document.uploadfile);"></td></tr>
@@ -225,7 +231,7 @@ function inputcheck(form) {
 <tr><td>name:</td><td><input type="text" name="name"{% if modify %} value="{{ modify.name|escape }}"{% endif %}></td></tr>
 {% if modify %}<tr><td>old path:</td><td><input type="text" name="oldpath" value="{{ modify.path|escape }}" readonly></td></tr>{% endif %}
 <tr><td>{% if modify %}new {% endif %}path:</td><td><input type="text" name="path"{% if modify %} value="{{ modify.path|escape }}"{% endif %}></td></tr>
-<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify and modify.public %} checked{% endif %}></td></tr>
+<tr><td>public:</td><td><input type="checkbox" name="public"{% if modify %}{% if modify.public %} checked{% endif %}{% else %} checked{% endif %}></td></tr>
 <tr><td>target path:</td><td><input type="text" name="aliastarget"{% if modify %} value="{{ modify.aliastarget|escape }}"{% endif %}></td></tr>
 <tr><td>description:</td><td><input type="text" name="description"{% if modify %} value="{{ modify.description|escape }}"{% endif %}></td></tr>
 <tr><td colspan="2"><input type="submit" value="{% if modify %}modify{% else %}add{% endif %}" onclick="return inputcheck(document.editalias);"></td></tr>

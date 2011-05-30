@@ -1,14 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head> 
-<title>{{ name }}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>{{ name }} - alglab.net</title>
+<link rel="stylesheet" type="text/css" href="/default.css">
 </head>
 <body>
-<div>{{ description }}</div>
-<div>
+<div id="navi">
+<table>
+<tr>
+<td style="width:550px;">{{ description }}</td>
+<td>
+<form action="http://www.google.com/cse" method="get" style="margin-top:0em;margin-bottom:0em;">
+<input type="hidden" name="cx" value="017470105403622007220:xfmsgzurk0u">
+<input type="hidden" name="ie" value="UTF-8">
+<input type="text" size="20" name="q" value="">
+<input type="submit" value="検索" style="font-size:0.7em;">
+</form>
+</td>
+</tr>
+</table>
+</div>
+<div id="header">
+<h1>alglab.net</h1>
+</div>
+<div id="middle">
+<div id="main">
 {{ text }}
 </div>
-<div style="font-size:0.75em; text-align:right;">
-<p>{{ lastupdate|date:"Y/m/d H:i" }}</p>
+<div id="sub">
+<div id="ad">
+<h5>広告</h5>
+<p>
+<!-- ad start -->
+<script type="text/javascript"><!--
+in_uid = '241937';
+in_templateid = '11025';
+in_charset = 'UTF-8';
+in_group = 'DefaultGroup';
+in_matchurl = '';
+in_HBgColor = 'FFFFFF';
+in_HBorderColor = 'B4D0DC';
+in_HTitleColor = '3399FF';
+in_HTextColor = '6F6F6F';
+in_HUrlColor = '000080';
+frame_width = '160';
+frame_height = '600';
+--></script>
+<script type='text/javascript' src='http://cache.microad.jp/send0100.js'></script>
+<p>マイクロアドBTパートナー登録は<a href="https://associate.microad.jp/associate/login?ID=241937" target="_blank">こちら</a>から</p>
+<!-- ad end -->
+</p>
+</div>
+</div>
+</div>
+<div id="footer">
+最終更新：{{ lastupdate|date:"Y/m/d H:i" }}<br>
+Copyright(C) 2010-2011 alglab.net, all rights reserved.<br><a href="./contact.html"><img src="./img/mail.png" alt="alg_dot_info_atmark_gmail_dot_com"></a>
 </div>
 </body>
 </html>
